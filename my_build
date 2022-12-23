@@ -1,0 +1,1 @@
+docker container run --interactive -v /Users/bytedance/bytedance/git/:/data --rm --tty -w /data/sponge/build my-ub "$@"
