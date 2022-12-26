@@ -28,7 +28,7 @@ void get_URL(const string &host, const string &path) {
     cerr << "request line: " << req_str << endl;
     http_sock.write(req_str, true);
     string buf;
-    while(1) {
+    while (1) {
         buf = http_sock.read(BUFSIZ);
         if (buf.size() > 0) {
             cout << buf;

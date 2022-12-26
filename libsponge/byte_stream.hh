@@ -21,8 +21,8 @@ class ByteStream {
 
     std::string _data{};
     size_t _cap{0};
-    size_t _ri{0}; // read index, next index will be read
-    size_t _wi{0}; // write index, next index will be written
+    size_t _ri{0};  // read index, next index will be read
+    size_t _wi{0};  // write index, next index will be written
     bool _write_end{};
 
   public:
