@@ -63,7 +63,7 @@ void StreamReassembler::insert(const std::string &v, size_t idx) {
     }
     if (cur == _list.end()) {
         _list.emplace_back(std::move(node));
-    } else if (cur->idx > idx) {
+    } else if (cur->idx >= idx) {
         _list.insert(cur, std::move(node));
     } // cur->idx == idx duplicated
     
