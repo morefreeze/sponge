@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <string>
 #include <list>
+#include <iostream>
 
 class Node {
   public:
