@@ -5,16 +5,31 @@
 
 #include <cstdint>
 #include <string>
+#include <list>
+
+class Node {
+  public:
+    std::string v;
+    size_t idx;
+};
 
 //! \brief A class that assembles a series of excerpts from a byte stream (possibly out of order,
 //! possibly overlapping) into an in-order byte stream.
 class StreamReassembler {
   private:
     // Your code here -- add private members as necessary.
-
+    std::list<Node> _list{};
+    size_t _unordered_bytes{0};
+    size_t _expected_idx{0};
+    bool _eof{};
+    
     ByteStream _output;  //!< The reassembled in-order byte stream
     size_t _capacity;    //!< The maximum number of bytes
-
+    /// @brief insert node to make list increased by idx and increase _total_bytes
+    /// @param v value
+    /// @param idx index indicate position value should be
+    /// @return void
+    void insert(const std::string &v, size_t idx);
   public:
     //! \brief Construct a `StreamReassembler` that will store up to `capacity` bytes.
     //! \note This capacity limits both the bytes that have been reassembled,
