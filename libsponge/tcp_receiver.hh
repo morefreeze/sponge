@@ -64,6 +64,7 @@ class TCPReceiver {
     ByteStream &stream_out() { return _reassembler.stream_out(); }
     const ByteStream &stream_out() const { return _reassembler.stream_out(); }
     //!@}
+    uint64_t stream_idx(const WrappingInt32 &seqno) const { return unwrap(seqno, _isn, stream_out().bytes_written()) - 1; }
 };
 
 #endif  // SPONGE_LIBSPONGE_TCP_RECEIVER_HH

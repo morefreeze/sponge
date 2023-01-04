@@ -13,19 +13,19 @@ void DUMMY_CODE(Targs &&.../* unused */) {}
 using namespace std;
 
 void TCPReceiver::segment_received(const TCPSegment &seg) {
-    auto seqno(seg.header().seqno);
     if (seg.header().syn) {
         _syn_received = true;
-        _isn = seqno;
+        _isn = seg.header().seqno;
     }
-    if (seg.header().fin && _syn_received) {
-        _fin_received = true;
-        stream_out().end_input();
-    }
+    auto seqno(seg.header().seqno + seg.header().syn);
+    _fin_received |= (seg.header().fin && _syn_received);
     if (_syn_received && seg.payload().size() > 0) {
-        auto idx(unwrap(seqno, _isn, ackno().value().raw_value()) - 1);
-        cout << seqno << " ack " << ackno().value_or(WrappingInt32{0}) << " cp " << idx << endl;
+        auto idx(stream_idx(seqno));
+        cout << seqno << " ack " << ackno().value_or(WrappingInt32{0}) << " idx " << idx << endl;
         _reassembler.push_substring(seg.payload().copy(), idx, _fin_received);
+    }
+    if (_fin_received && _reassembler.unassembled_bytes() == 0) {
+        stream_out().end_input();
     }
 }
 
