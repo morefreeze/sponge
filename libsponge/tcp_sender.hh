@@ -37,14 +37,16 @@ class TCPSender {
 
     uint64_t _last_ackno{0};
 
+    // window size receive from ack, use wnd_size() to get real value
     uint16_t _wnd_size{1};
 
+    // retransmit timer in ms
     size_t _timer_ms{0};
 
+    // how many times retransmit
     unsigned int _rx_time{0};
 
     bool _fin_sent{false};
-    bool _fin_acked{false};
 
     uint16_t remaining_window_size() const {
         auto bif(bytes_in_flight());
@@ -54,14 +56,18 @@ class TCPSender {
         return 0;
     }
 
+    // _wnd_size record original value from ack, it returns real value
     uint16_t wnd_size() const {
       return _wnd_size == 0 ? 1 : _wnd_size;
     }
 
+    // when seg has more than one byte then push it to stream_out
+    // it returns if push successfully
     bool push_new_segment(const TCPSegment &&seg);
 
     void reset_timer();
 
+    // reset timer and next_timeout backoff
     void backoff_timer();
 
   public:

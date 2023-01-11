@@ -38,7 +38,7 @@ void TCPSender::fill_window() {
         push_new_segment(move(syn_seg));
         return;
     }
-    if (_fin_acked) {
+    if (_fin_sent) {
         return;
     }
     do {
@@ -67,7 +67,6 @@ void TCPSender::ack_received(const WrappingInt32 ackno, const uint16_t window_si
     }
     auto new_ackno(unwrap(ackno, _isn, _stream.bytes_read()));
     _wnd_size = window_size;
-    _fin_acked = _stream.eof() && _fin_sent;
     while (!_in_flight_segments.empty()) {
         auto first(_in_flight_segments.front());
         auto seg_ackno(unwrap(first.header().seqno, _isn, _stream.bytes_read()) + first.length_in_sequence_space());
