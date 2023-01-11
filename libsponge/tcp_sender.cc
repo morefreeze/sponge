@@ -28,7 +28,6 @@ uint64_t TCPSender::bytes_in_flight() const { return _next_seqno - _last_ackno; 
 
 void TCPSender::fill_window() {
     size_t left_wnd_size(remaining_window_size());
-    cout << "remaining " << left_wnd_size << endl;
     if (left_wnd_size == 0) {
         return;
     }
@@ -39,30 +38,36 @@ void TCPSender::fill_window() {
         push_new_segment(move(syn_seg));
         return;
     }
-    if (_stream.buffer_empty() && !_stream.input_ended()) {
+    cout << "fin acked " << _fin_acked << _stream.eof() << endl;
+    if (_fin_acked) {
         return;
     }
     // push payload
     TCPSegment seg;
     string payload(_stream.read(min(left_wnd_size, _stream.buffer_size())));
     assert(!_stream.error);
-    // cout << "pppppp " << stream_in().bytes_written() << stream_in().buffer_size() << " " << payload.size() << " [" <<
-    // payload << "]" << endl;
     seg.header().seqno = wrap(_next_seqno, _isn);
-    if (_stream.input_ended()) {
+    if (_stream.eof() && !_fin_sent) {
         seg.header().fin = true;
+        _fin_sent = true;
     }
+    cout << "eof " << _stream.eof() << " " << seg.header().fin << endl;
     seg.payload() = Buffer(move(payload));
     // cout << "seg " << seg.header().seqno << seg.payload().size() << endl;
     push_new_segment(move(seg));
-    // cout << "end remaining " << _next_seqno << " seg size " << _segments_out.size() << endl;
+    cout << "end remaining " << bytes_in_flight() << endl;
 }
 
 //! \param ackno The remote receiver's ackno (acknowledgment number)
 //! \param window_size The remote receiver's advertised window size
 void TCPSender::ack_received(const WrappingInt32 ackno, const uint16_t window_size) {
+    cout << "ack " << unwrap(ackno, _isn, _stream.bytes_read()) << " " << _next_seqno << " " << bytes_in_flight() << endl;
+    if (unwrap(ackno, _isn, _stream.bytes_read()) > _next_seqno + _stream.input_ended()) { // invalid ackno
+        return ;
+    }
     _wnd_size = window_size;
     _last_ackno = unwrap(ackno, _isn, _stream.bytes_read());
+    _fin_acked = _stream.eof() && _fin_sent;
     while (!_in_flight_segments.empty()) {
         auto first(_in_flight_segments.front());
         if (unwrap(first.header().seqno, _isn, _stream.bytes_read()) < _last_ackno) {
@@ -96,10 +101,10 @@ unsigned int TCPSender::consecutive_retransmissions() const {
 void TCPSender::send_empty_segment() { _stream.write(""); }
 
 void TCPSender::push_new_segment(const TCPSegment &&seg) {
-    _segments_out.push(seg);
-    _in_flight_segments.push(TCPSegment(seg));
-    _next_seqno += seg.length_in_sequence_space();
-    if (seg.payload().size() > 0) {
+    if (seg.length_in_sequence_space() > 0) {
+        _segments_out.push(seg);
+        _in_flight_segments.push(TCPSegment(seg));
+        _next_seqno += seg.length_in_sequence_space();
         reset_timer();
     }
 }

@@ -43,6 +43,9 @@ class TCPSender {
 
     unsigned int _rx_time{0};
 
+    bool _fin_sent{false};
+    bool _fin_acked{false};
+
     uint16_t remaining_window_size() const {
         auto bif(bytes_in_flight());
         if (_wnd_size > bif) {
