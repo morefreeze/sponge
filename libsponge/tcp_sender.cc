@@ -28,7 +28,6 @@ uint64_t TCPSender::bytes_in_flight() const { return _next_seqno - _last_ackno; 
 
 void TCPSender::fill_window() {
     size_t left_wnd_size(remaining_window_size());
-    cout << "wnd " << left_wnd_size << endl;
     if (left_wnd_size == 0) {
         return;
     }
@@ -39,29 +38,23 @@ void TCPSender::fill_window() {
         push_new_segment(move(syn_seg));
         return;
     }
-    cout << "fin acked " << _fin_acked << _stream.eof() << endl;
     if (_fin_acked) {
         return;
     }
     do {
-        cout << "wnd2 " << left_wnd_size << endl;
-        // cout << "re " << left_wnd_size << endl;
         // push payload
         TCPSegment seg;
         string payload(_stream.read(min(TCPConfig::MAX_PAYLOAD_SIZE, min(left_wnd_size, _stream.buffer_size()))));
         assert(!_stream.error);
         seg.header().seqno = wrap(_next_seqno, _isn);
-        if (_stream.eof() && !_fin_sent) {
+        if (_stream.eof() && !_fin_sent && payload.size() < left_wnd_size) {
             seg.header().fin = true;
             _fin_sent = true;
         }
-        cout << "eof " << _stream.eof() << " " << seg.header().fin << endl;
         seg.payload() = Buffer(move(payload));
-        // cout << "seg " << seg.header().seqno << seg.payload().size() << endl;
         if (!push_new_segment(move(seg))) {
             break;
         }
-        // cout << "end remaining " << bytes_in_flight() << endl;
         left_wnd_size = remaining_window_size();
     } while (!_stream.buffer_empty());
 }
@@ -69,17 +62,18 @@ void TCPSender::fill_window() {
 //! \param ackno The remote receiver's ackno (acknowledgment number)
 //! \param window_size The remote receiver's advertised window size
 void TCPSender::ack_received(const WrappingInt32 ackno, const uint16_t window_size) {
-    cout << "ack " << unwrap(ackno, _isn, _stream.bytes_read()) << " " << _next_seqno << " " << bytes_in_flight() << endl;
-    if (unwrap(ackno, _isn, _stream.bytes_read()) > _next_seqno + _stream.input_ended()) { // invalid ackno
+    if (unwrap(ackno, _isn, _stream.bytes_read()) > _next_seqno) { // invalid ackno
         return ;
     }
+    auto new_ackno(unwrap(ackno, _isn, _stream.bytes_read()));
     _wnd_size = window_size;
-    _last_ackno = unwrap(ackno, _isn, _stream.bytes_read());
     _fin_acked = _stream.eof() && _fin_sent;
     while (!_in_flight_segments.empty()) {
         auto first(_in_flight_segments.front());
-        if (unwrap(first.header().seqno, _isn, _stream.bytes_read()) < _last_ackno) {
+        auto seg_ackno(unwrap(first.header().seqno, _isn, _stream.bytes_read()) + first.length_in_sequence_space());
+        if (seg_ackno <= new_ackno) {
             _in_flight_segments.pop();
+            _last_ackno = seg_ackno;
             reset_timer();
         } else {
             break;
@@ -126,8 +120,9 @@ void TCPSender::reset_timer() {
 }
 
 void TCPSender::backoff_timer() {
-    assert(_wnd_size > 0);
     ++_rx_time;
-    _next_timeout_ms <<= 1;
+    if (_wnd_size > 0) { // when win_size==0 treat as 1 and don't backoff
+        _next_timeout_ms <<= 1;
+    }
     _timer_ms = 0;
 }

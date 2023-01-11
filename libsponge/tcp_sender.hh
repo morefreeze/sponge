@@ -48,10 +48,14 @@ class TCPSender {
 
     uint16_t remaining_window_size() const {
         auto bif(bytes_in_flight());
-        if (_wnd_size > bif) {
-            return _wnd_size - bif;
+        if (wnd_size() > bif) {
+            return wnd_size() - bif;
         }
         return 0;
+    }
+
+    uint16_t wnd_size() const {
+      return _wnd_size == 0 ? 1 : _wnd_size;
     }
 
     bool push_new_segment(const TCPSegment &&seg);
