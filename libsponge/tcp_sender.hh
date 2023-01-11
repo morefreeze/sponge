@@ -54,7 +54,7 @@ class TCPSender {
         return 0;
     }
 
-    void push_new_segment(const TCPSegment &&seg);
+    bool push_new_segment(const TCPSegment &&seg);
 
     void reset_timer();
 

@@ -28,6 +28,7 @@ uint64_t TCPSender::bytes_in_flight() const { return _next_seqno - _last_ackno; 
 
 void TCPSender::fill_window() {
     size_t left_wnd_size(remaining_window_size());
+    cout << "wnd " << left_wnd_size << endl;
     if (left_wnd_size == 0) {
         return;
     }
@@ -42,20 +43,27 @@ void TCPSender::fill_window() {
     if (_fin_acked) {
         return;
     }
-    // push payload
-    TCPSegment seg;
-    string payload(_stream.read(min(left_wnd_size, _stream.buffer_size())));
-    assert(!_stream.error);
-    seg.header().seqno = wrap(_next_seqno, _isn);
-    if (_stream.eof() && !_fin_sent) {
-        seg.header().fin = true;
-        _fin_sent = true;
-    }
-    cout << "eof " << _stream.eof() << " " << seg.header().fin << endl;
-    seg.payload() = Buffer(move(payload));
-    // cout << "seg " << seg.header().seqno << seg.payload().size() << endl;
-    push_new_segment(move(seg));
-    cout << "end remaining " << bytes_in_flight() << endl;
+    do {
+        cout << "wnd2 " << left_wnd_size << endl;
+        // cout << "re " << left_wnd_size << endl;
+        // push payload
+        TCPSegment seg;
+        string payload(_stream.read(min(TCPConfig::MAX_PAYLOAD_SIZE, min(left_wnd_size, _stream.buffer_size()))));
+        assert(!_stream.error);
+        seg.header().seqno = wrap(_next_seqno, _isn);
+        if (_stream.eof() && !_fin_sent) {
+            seg.header().fin = true;
+            _fin_sent = true;
+        }
+        cout << "eof " << _stream.eof() << " " << seg.header().fin << endl;
+        seg.payload() = Buffer(move(payload));
+        // cout << "seg " << seg.header().seqno << seg.payload().size() << endl;
+        if (!push_new_segment(move(seg))) {
+            break;
+        }
+        // cout << "end remaining " << bytes_in_flight() << endl;
+        left_wnd_size = remaining_window_size();
+    } while (!_stream.buffer_empty());
 }
 
 //! \param ackno The remote receiver's ackno (acknowledgment number)
@@ -100,13 +108,15 @@ unsigned int TCPSender::consecutive_retransmissions() const {
 
 void TCPSender::send_empty_segment() { _stream.write(""); }
 
-void TCPSender::push_new_segment(const TCPSegment &&seg) {
+bool TCPSender::push_new_segment(const TCPSegment &&seg) {
     if (seg.length_in_sequence_space() > 0) {
         _segments_out.push(seg);
         _in_flight_segments.push(TCPSegment(seg));
         _next_seqno += seg.length_in_sequence_space();
-        reset_timer();
+        return true;
+        // reset_timer();
     }
+    return false;
 }
 
 void TCPSender::reset_timer() {
