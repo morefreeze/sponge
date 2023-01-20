@@ -23,7 +23,7 @@ class ByteStream {
     size_t _cap{0};
     size_t _ri{0};  // read index, next index will be read
     size_t _wi{0};  // write index, next index will be written
-    bool _write_end{};
+    bool _write_end{false};
 
   public:
     //! Construct a stream with room for `capacity` bytes.

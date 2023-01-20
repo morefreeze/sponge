@@ -125,6 +125,7 @@ class TCPSender {
     //! \brief relative seqno for the next byte to be sent
     WrappingInt32 next_seqno() const { return wrap(_next_seqno, _isn); }
     //!@}
+    size_t time_since_last_segment_received() const { return _timer_ms; }
 };
 
 #endif  // SPONGE_LIBSPONGE_TCP_SENDER_HH

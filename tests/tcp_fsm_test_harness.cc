@@ -204,7 +204,7 @@ TCPTestHarness TCPTestHarness::in_syn_sent(const TCPConfig &cfg, const WrappingI
 }
 
 //! \brief Create an FSM with an established connection
-//! \details The mahine has sent and received a SYN, and both SYNs have been ACK'd
+//! \details The machine has sent and received a SYN, and both SYNs have been ACK'd
 //! \param[in] tx_isn is the ISN of the FSM's outbound sequence. i.e. the
 //!            seqno for the SYN.
 //! \param[in] rx_isn is the ISN of the FSM's inbound sequence. i.e. the
