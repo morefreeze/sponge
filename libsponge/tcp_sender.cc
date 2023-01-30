@@ -45,7 +45,7 @@ void TCPSender::fill_window() {
         // push payload
         TCPSegment seg;
         string payload(_stream.read(min(TCPConfig::MAX_PAYLOAD_SIZE, min(left_wnd_size, _stream.buffer_size()))));
-        assert(!_stream.error);
+        assert(!_stream.error());
         seg.header().seqno = next_seqno();
         if (_stream.eof() && !_fin_sent && payload.size() < left_wnd_size) {
             seg.header().fin = true;
