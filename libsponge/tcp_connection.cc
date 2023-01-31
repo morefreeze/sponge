@@ -23,18 +23,24 @@ size_t TCPConnection::time_since_last_segment_received() const { return _sender.
 void TCPConnection::segment_received(const TCPSegment &seg) {
     cout << "start state " << state().name() << endl;
     _receiver.segment_received(seg);
-    _sender.ack_received(seg.header().ackno, seg.header().win);
+    if (seg.header().ack) {
+        _sender.ack_received(seg.header().ackno, seg.header().win);
+    }
     cout << "act " << _sender.stream_in().input_ended() << " " << _receiver.stream_out().input_ended() << _sender.stream_in().eof() << _receiver.stream_out().eof() << endl;
     // cout << "linger " << _linger_after_streams_finish << endl;
     cout << "status:\nnow  " << state().name() << endl;
     // judge future state
-    if (state() == TCPState(TCPState::State::ESTABLISHED) || state() == TCPState(TCPState::State::TIME_WAIT)) {
+    if (state() == TCPState(TCPState::State::ESTABLISHED) 
+    || state() == TCPState(TCPState::State::TIME_WAIT)
+    || state() == TCPState(TCPState::State::CLOSING)) {
         // send ack after syn+ack
-        TCPSegment resp_seg;
-        resp_seg.header().ack = true;
-        resp_seg.header().seqno = seg.header().ackno;
-        resp_seg.header().ackno = _sender.next_seqno();
-        segments_out().push(move(resp_seg));
+        // TCPSegment resp_seg;
+        // resp_seg.header().ack = true;
+        // resp_seg.header().seqno = seg.header().ackno;
+        // resp_seg.header().ackno = _sender.next_seqno();
+        // segments_out().push(move(resp_seg));
+        _sender.send_empty_segment();
+        collect_output();
     }
 }
 
@@ -43,15 +49,16 @@ bool TCPConnection::active() const {
 }
 
 size_t TCPConnection::write(const string &data) {
-    _sender.stream_in().write(data);
+    size_t byte_written = _sender.stream_in().write(data);
     _sender.fill_window();
     collect_output();
-    return data.size();
+    return byte_written;
 }
 
 //! \param[in] ms_since_last_tick number of milliseconds since the last call to this method
 void TCPConnection::tick(const size_t ms_since_last_tick) {
     _sender.tick(ms_since_last_tick);
+    collect_output();
     cout << "tick " << _sender.time_since_last_segment_received() << " " << _cfg.rt_timeout << endl;
     if (_sender.time_since_last_segment_received() >= _cfg.rt_timeout * 10) {
         _linger_after_streams_finish = false;
@@ -61,10 +68,6 @@ void TCPConnection::tick(const size_t ms_since_last_tick) {
 void TCPConnection::end_input_stream() {
     _sender.stream_in().end_input();
     _sender.fill_window();
-    TCPSegment& modified_seg(_sender.segments_out().back());
-    // must set seg ackno
-    modified_seg.header().ack = true;
-    modified_seg.header().ackno = _receiver.ackno().value();
     collect_output();
 }
 
@@ -87,7 +90,15 @@ TCPConnection::~TCPConnection() {
 
 void TCPConnection::collect_output() {
     while (! _sender.segments_out().empty()) {
-        _segments_out.push(move(_sender.segments_out().front()));
+        TCPSegment &seg = _sender.segments_out().front();
+        if (_receiver.ackno().has_value()) {
+            seg.header().ack = true;
+            seg.header().ackno = _receiver.ackno().value();
+        }
+        seg.header().win = _receiver.window_size() > std::numeric_limits<uint16_t>::max()
+            ? std::numeric_limits<uint16_t>::max()
+            : _receiver.window_size();
+        segments_out().push(move(seg));
         _sender.segments_out().pop();
     }
 }

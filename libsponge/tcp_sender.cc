@@ -27,6 +27,7 @@ TCPSender::TCPSender(const size_t capacity, const uint16_t retx_timeout, const s
 uint64_t TCPSender::bytes_in_flight() const { return _next_seqno - _last_ackno; }
 
 void TCPSender::fill_window() {
+    cout << "fill_wnd " << _next_seqno << endl;
     size_t left_wnd_size(remaining_window_size());
     if (left_wnd_size == 0) {
         return;
@@ -62,10 +63,11 @@ void TCPSender::fill_window() {
 //! \param ackno The remote receiver's ackno (acknowledgment number)
 //! \param window_size The remote receiver's advertised window size
 void TCPSender::ack_received(const WrappingInt32 ackno, const uint16_t window_size) {
+    auto new_ackno(unwrap(ackno, _isn, _stream.bytes_read()));
+    cout << "sender ack recv " << new_ackno << " " << _next_seqno << endl;
     if (unwrap(ackno, _isn, _stream.bytes_read()) > _next_seqno) { // invalid ackno
         return ;
     }
-    auto new_ackno(unwrap(ackno, _isn, _stream.bytes_read()));
     _wnd_size = window_size;
     while (!_in_flight_segments.empty()) {
         auto first(_in_flight_segments.front());
@@ -99,7 +101,11 @@ unsigned int TCPSender::consecutive_retransmissions() const {
     return _rx_time;
 }
 
-void TCPSender::send_empty_segment() { _stream.write(""); }
+void TCPSender::send_empty_segment() {
+    TCPSegment seg;
+    seg.header().seqno = next_seqno();
+    segments_out().emplace(seg);
+}
 
 bool TCPSender::push_new_segment(const TCPSegment &&seg) {
     if (seg.length_in_sequence_space() > 0) {

@@ -19,6 +19,7 @@ int main() {
 
         // test #1: start in TIME_WAIT, timeout
         {
+            cout << "test1 ===============" << endl;
             TCPTestHarness test_1 = TCPTestHarness::in_time_wait(cfg);
 
             test_1.execute(Tick(10 * cfg.rt_timeout - 1));
@@ -36,6 +37,7 @@ int main() {
 
         // test #2: start in CLOSING, send ack, time out
         {
+            cout << "test2 ===============" << endl;
             TCPTestHarness test_2 = TCPTestHarness::in_closing(cfg);
 
             test_2.execute(Tick(4 * cfg.rt_timeout));
