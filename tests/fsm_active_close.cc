@@ -40,6 +40,7 @@ int main() {
             cout << "test2 ===============" << endl;
             TCPTestHarness test_2 = TCPTestHarness::in_closing(cfg);
 
+            // closing timeout, need rererans fin again
             test_2.execute(Tick(4 * cfg.rt_timeout));
             test_2.execute(ExpectOneSegment{}.with_fin(true));
 

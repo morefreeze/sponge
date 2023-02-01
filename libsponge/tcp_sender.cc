@@ -69,9 +69,12 @@ void TCPSender::ack_received(const WrappingInt32 ackno, const uint16_t window_si
         return ;
     }
     _wnd_size = window_size;
+    cout << "sender check in flight size " << _in_flight_segments.size() << endl;
     while (!_in_flight_segments.empty()) {
         auto first(_in_flight_segments.front());
+        cout << "in flight " << first.header().summary() << endl;
         auto seg_ackno(unwrap(first.header().seqno, _isn, _stream.bytes_read()) + first.length_in_sequence_space());
+        cout << "in flight ack " << seg_ackno << " " << new_ackno << endl;
         if (seg_ackno <= new_ackno) {
             _in_flight_segments.pop();
             _last_ackno = seg_ackno;
