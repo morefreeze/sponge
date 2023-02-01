@@ -40,7 +40,7 @@ int main() {
             cout << "test2 ===============" << endl;
             TCPTestHarness test_2 = TCPTestHarness::in_closing(cfg);
 
-            // closing timeout, need rererans fin again
+            // closing timeout, need retx fin again
             test_2.execute(Tick(4 * cfg.rt_timeout));
             test_2.execute(ExpectOneSegment{}.with_fin(true));
 
@@ -61,6 +61,7 @@ int main() {
 
         // test #3: start in FIN_WAIT_2, send FIN, time out
         {
+            cout << "test3 ===============" << endl;
             TCPTestHarness test_3 = TCPTestHarness::in_fin_wait_2(cfg);
 
             test_3.execute(Tick(4 * cfg.rt_timeout));

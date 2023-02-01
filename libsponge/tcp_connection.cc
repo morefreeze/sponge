@@ -21,16 +21,37 @@ size_t TCPConnection::unassembled_bytes() const { return _receiver.unassembled_b
 size_t TCPConnection::time_since_last_segment_received() const { return _sender.time_since_last_segment_received(); }
 
 void TCPConnection::segment_received(const TCPSegment &seg) {
+    cout << "recv seg " << seg.header().summary() << endl;
     cout << "start state " << state().name() << endl;
     _receiver.segment_received(seg);
+    if (_receiver.stream_out().eof() && !_sender.stream_in().eof()) {
+        _linger_after_streams_finish = false;
+    }
+    auto after_recv_state(state());
+    cout << "recv state " << after_recv_state.name() << endl;
     if (seg.header().ack) {
         _sender.ack_received(seg.header().ackno, seg.header().win);
-        _sender.send_empty_segment();
-        collect_output();
+        cout << "sender ack " << state().name() << endl;
+        cout << "bytes in flight " << _sender.bytes_in_flight() << endl;
+        auto after_send_state(state());
+        if (after_send_state == TCPState(TCPState::State::FIN_WAIT_1)) {
+        } else if (after_send_state == TCPState(TCPState::State::FIN_WAIT_2)) {
+
+        } else if (after_send_state == TCPState(TCPState::State::CLOSING)) {
+
+        } else if (after_send_state == TCPState(TCPState::State::CLOSE_WAIT)) {
+
+        } else if (after_send_state == TCPState(TCPState::State::LAST_ACK)) {
+
+        } else {
+
+        }
+        if ((!_sender.stream_in().eof() || _linger_after_streams_finish) && !_is_time_wait) {
+            _is_time_wait = (_sender.stream_in().eof() && _receiver.stream_out().eof());
+            _sender.send_empty_segment();
+            collect_output();
+        }
     }
-    cout << "act " << _sender.stream_in().input_ended() << " " << _receiver.stream_out().input_ended() << _sender.stream_in().eof() << _receiver.stream_out().eof() << endl;
-    // cout << "linger " << _linger_after_streams_finish << endl;
-    cout << "status:\nnow  " << state().name() << endl;
 }
 
 bool TCPConnection::active() const {
