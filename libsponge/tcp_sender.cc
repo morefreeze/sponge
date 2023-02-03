@@ -63,19 +63,23 @@ void TCPSender::fill_window() {
 //! \param ackno The remote receiver's ackno (acknowledgment number)
 //! \param window_size The remote receiver's advertised window size
 void TCPSender::ack_received(const WrappingInt32 ackno, const uint16_t window_size) {
-    auto new_ackno(unwrap(ackno, _isn, _stream.bytes_read()));
-    cout << "sender ack recv " << new_ackno << " " << _next_seqno << endl;
-    if (unwrap(ackno, _isn, _stream.bytes_read()) > _next_seqno) { // invalid ackno
+    auto ackno_raw_value(unwrap(ackno, _isn, _stream.bytes_read()));
+    cout << "sender ack recv " << ackno_raw_value << " " << _next_seqno << endl;
+    if (ackno_raw_value > _next_seqno) { // invalid ackno
         return ;
     }
     _wnd_size = window_size;
     cout << "sender check in flight size " << _in_flight_segments.size() << endl;
+    if (_fin_sent) {
+        // if fin_sent, receive remote fin or ack for fin should reset timer even in_flight_segments is empty
+        reset_timer();
+    }
     while (!_in_flight_segments.empty()) {
         auto first(_in_flight_segments.front());
         cout << "in flight " << first.header().summary() << endl;
         auto seg_ackno(unwrap(first.header().seqno, _isn, _stream.bytes_read()) + first.length_in_sequence_space());
-        cout << "in flight ack " << seg_ackno << " " << new_ackno << endl;
-        if (seg_ackno <= new_ackno) {
+        cout << "in flight ack " << seg_ackno << " " << ackno_raw_value << endl;
+        if (seg_ackno <= ackno_raw_value) {
             _in_flight_segments.pop();
             _last_ackno = seg_ackno;
             reset_timer();

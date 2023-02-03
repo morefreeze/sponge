@@ -111,12 +111,6 @@ void TCPConnection::collect_output() {
             cout << "recv ack " << _receiver.ackno().value() << " next seq " << _sender.next_seqno() << endl;
             seg.header().ack = true;
             seg.header().ackno = _receiver.ackno().value();
-            if (_receiver.stream_out().eof()) {
-                cout << "add 1" << endl;
-                seg.header().win = 1234;
-            }
-            cout << "recv stream_idx " << seg.header().ackno.raw_value() << endl;
-                
         }
         seg.header().win = _receiver.window_size() > std::numeric_limits<uint16_t>::max()
             ? std::numeric_limits<uint16_t>::max()

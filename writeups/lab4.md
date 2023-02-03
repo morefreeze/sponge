@@ -34,7 +34,14 @@ without &, so what I modified on it didn't take any effect.
 Add test name in fsm_active_close so that I can find which test failed quickly.
 test1 check TCPConn as left hand side, test2 check as opposing side.
 
+## DO NOT send ACK for ACK
 I make a big mistake, I can't process send FIN, recv ACK, I sent another ACK for this ACK.
+I fix this.
+
+## AF with same ackno
+Until to test5, I fail on reset_timer, because I don't send ACK for ACK, so when receive fin sender
+don't reset timer. But if I always reset timer when call ack_received, it will fail on check_lab3 t_send_extra. I figure out why this fail, because remote send AF separately with same ackno,
+I need reset timer after sender have sent fin because it will only receive fin or ack for fin.
 
 - Optional: I was surprised by: [describe]
 
