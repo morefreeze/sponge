@@ -31,8 +31,8 @@ void TCPConnection::segment_received(const TCPSegment &seg) {
     cout << "recv state " << after_recv_state.name() << endl;
     if (seg.header().ack) {
         _sender.ack_received(seg.header().ackno, seg.header().win);
-        cout << "sender ack " << state().name() << endl;
-        cout << "bytes in flight " << _sender.bytes_in_flight() << endl;
+        // cout << "sender ack " << state().name() << endl;
+        // cout << "bytes in flight " << _sender.bytes_in_flight() << endl;
         auto after_send_state(state());
         if (after_send_state == TCPState(TCPState::State::FIN_WAIT_1)) {
         } else if (after_send_state == TCPState(TCPState::State::FIN_WAIT_2)) {
@@ -46,11 +46,16 @@ void TCPConnection::segment_received(const TCPSegment &seg) {
         } else {
 
         }
-        if ((!_sender.stream_in().eof() || _linger_after_streams_finish) && !_is_time_wait) {
-            _is_time_wait = (_sender.stream_in().eof() && _receiver.stream_out().eof());
+        _sender.fill_window();
+        // if only ack received or seg_out is not empty then don't send ack for it
+        if (!only_ack(seg.header()) && _sender.segments_out().empty()) {
             _sender.send_empty_segment();
-            collect_output();
         }
+        // if (!outbound_done() && !_remote_fin_ack && !_recv_my_fin_ack) {
+        //     _remote_fin_ack = (_sender.stream_in().eof() && _receiver.stream_out().eof());
+        //     _sender.send_empty_segment();
+        // }
+        collect_output();
     }
 }
 
@@ -101,15 +106,24 @@ TCPConnection::~TCPConnection() {
 void TCPConnection::collect_output() {
     while (! _sender.segments_out().empty()) {
         TCPSegment &seg = _sender.segments_out().front();
-        if (_receiver.ackno().has_value()) {
+        cout << "before coll seg " << seg.header().summary() << endl;
+        if (_receiver.ackno().has_value() && !seg.header().ack) {
+            cout << "recv ack " << _receiver.ackno().value() << " next seq " << _sender.next_seqno() << endl;
             seg.header().ack = true;
             seg.header().ackno = _receiver.ackno().value();
+            if (_receiver.stream_out().eof()) {
+                cout << "add 1" << endl;
+                seg.header().win = 1234;
+            }
+            cout << "recv stream_idx " << seg.header().ackno.raw_value() << endl;
+                
         }
         seg.header().win = _receiver.window_size() > std::numeric_limits<uint16_t>::max()
             ? std::numeric_limits<uint16_t>::max()
             : _receiver.window_size();
-        segments_out().push(move(seg));
-        cout << "coll seg " << seg.header().summary() << endl;
+        segments_out().emplace(move(seg));
         _sender.segments_out().pop();
+        cout << "coll seg " << seg.header().summary() << endl;
+        cout << "stream out seg " << segments_out().back().header().summary() << endl;
     }
 }

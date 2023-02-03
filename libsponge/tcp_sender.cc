@@ -27,7 +27,7 @@ TCPSender::TCPSender(const size_t capacity, const uint16_t retx_timeout, const s
 uint64_t TCPSender::bytes_in_flight() const { return _next_seqno - _last_ackno; }
 
 void TCPSender::fill_window() {
-    cout << "fill_wnd " << _next_seqno << endl;
+    cout << "next_seq " << _next_seqno << endl;
     size_t left_wnd_size(remaining_window_size());
     if (left_wnd_size == 0) {
         return;
@@ -107,7 +107,7 @@ unsigned int TCPSender::consecutive_retransmissions() const {
 void TCPSender::send_empty_segment() {
     TCPSegment seg;
     seg.header().seqno = next_seqno();
-    segments_out().emplace(seg);
+    segments_out().emplace(move(seg));
 }
 
 bool TCPSender::push_new_segment(const TCPSegment &&seg) {

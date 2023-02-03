@@ -9,7 +9,7 @@ I collaborated with: [list sunetids here]
 
 I would like to thank/reward these classmates for their help: [list sunetids here]
 
-This lab took me about 7 hours to do. I [did/did not] attend the lab session.
+This lab took me about 8 hours to do. I [did/did not] attend the lab session.
 
 Program Structure and Design of the TCPConnection:
 []
@@ -33,6 +33,8 @@ without &, so what I modified on it didn't take any effect.
 
 Add test name in fsm_active_close so that I can find which test failed quickly.
 test1 check TCPConn as left hand side, test2 check as opposing side.
+
+I make a big mistake, I can't process send FIN, recv ACK, I sent another ACK for this ACK.
 
 - Optional: I was surprised by: [describe]
 
