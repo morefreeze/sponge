@@ -28,6 +28,8 @@ class TCPConnection {
 
     void collect_output();
 
+    void send_rst_seg();
+
   public:
     //! \name "Input" interface for the writer
     //!@{
@@ -102,15 +104,13 @@ class TCPConnection {
     TCPConnection &operator=(const TCPConnection &other) = delete;
     //!@}
 
-    bool prereq1() { return _receiver.stream_out().eof(); }
+    bool prereq1() const { return _receiver.stream_out().eof(); }
 
-    bool prereq2() { return _sender.stream_in().eof(); }
+    bool prereq2() const { return _sender.stream_in().eof(); }
 
-    bool prereq3() { return _sender.stream_in().eof() && _sender.bytes_in_flight() == 0; }
-    // if outbound all done
-    bool outbound_done() { return _sender.stream_in().eof() && !_linger_after_streams_finish; };
+    bool prereq3() const { return _sender.stream_in().eof() && _sender.bytes_in_flight() == 0; }
 
-    bool only_ack(const TCPHeader &header) { return header.ack && !header.fin && !header.syn; }
+    bool only_ack(const TCPHeader &header) const { return header.ack && !header.fin && !header.syn; }
 };
 
 #endif  // SPONGE_LIBSPONGE_TCP_FACTORED_HH
