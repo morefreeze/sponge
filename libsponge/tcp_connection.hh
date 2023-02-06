@@ -30,6 +30,9 @@ class TCPConnection {
 
     void send_rst_seg();
 
+    // unclear_shutdown process 
+    void unclear_shutdown();
+
   public:
     //! \name "Input" interface for the writer
     //!@{

@@ -27,8 +27,10 @@ TCPSender::TCPSender(const size_t capacity, const uint16_t retx_timeout, const s
 uint64_t TCPSender::bytes_in_flight() const { return _next_seqno - _last_ackno; }
 
 void TCPSender::fill_window() {
-    cout << "next_seq " << _next_seqno << endl;
     size_t left_wnd_size(remaining_window_size());
+    DEBUG(_segments_out.size());
+    DEBUG(next_seqno());
+    DEBUG(left_wnd_size);
     if (left_wnd_size == 0) {
         return;
     }
@@ -39,6 +41,7 @@ void TCPSender::fill_window() {
         push_new_segment(move(syn_seg));
         return;
     }
+    DEBUG(_fin_sent);
     if (_fin_sent) {
         return;
     }
@@ -53,11 +56,13 @@ void TCPSender::fill_window() {
             _fin_sent = true;
         }
         seg.payload() = Buffer(move(payload));
+        DEBUG(seg.header().summary());
         if (!push_new_segment(move(seg))) {
             break;
         }
         left_wnd_size = remaining_window_size();
     } while (!_stream.buffer_empty());
+    DEBUG(_segments_out.size());
 }
 
 //! \param ackno The remote receiver's ackno (acknowledgment number)
@@ -92,16 +97,26 @@ void TCPSender::ack_received(const WrappingInt32 ackno, const uint16_t window_si
 //! \param[in] ms_since_last_tick the number of milliseconds since the last call to this method
 void TCPSender::tick(const size_t ms_since_last_tick) {
     _timer_ms += ms_since_last_tick;
+    DEBUG(_timer_ms);
+    DEBUG(_next_timeout_ms);
     if (_timer_ms < _next_timeout_ms) {
         return ;
     }
-    if (!_in_flight_segments.empty()) {
-        auto first(_in_flight_segments.front());
-        // retx seqno >= last_ackno, discard seg if seqno < last_ackno(like ack_received)
-        assert(unwrap(first.header().seqno, _isn, _stream.bytes_read()) >= _last_ackno);
-        _segments_out.push(first);
-        backoff_timer();
+    DEBUG(_in_flight_segments.size());
+    // in flight segment has nothing, don't start timer
+    // if fin_sent don't need reset timer only wait 10*rx_timeout
+    if (_in_flight_segments.empty()) {
+        if (!_fin_sent) {
+            reset_timer();
+        }
+        return ;
     }
+    // there are some in flight segments and timeout, re-tx them and next_timeout*2
+    auto first(_in_flight_segments.front());
+    // retx seqno >= last_ackno, discard seg if seqno < last_ackno(like ack_received)
+    assert(unwrap(first.header().seqno, _isn, _stream.bytes_read()) >= _last_ackno);
+    _segments_out.push(first);
+    backoff_timer();
 }
 
 unsigned int TCPSender::consecutive_retransmissions() const {

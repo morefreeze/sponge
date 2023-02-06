@@ -9,7 +9,7 @@ I collaborated with: [list sunetids here]
 
 I would like to thank/reward these classmates for their help: [list sunetids here]
 
-This lab took me about 8 hours to do. I [did/did not] attend the lab session.
+This lab took me about 11 hours to do. I [did/did not] attend the lab session.
 
 Program Structure and Design of the TCPConnection:
 []
@@ -42,6 +42,9 @@ I fix this.
 Until to test5, I fail on reset_timer, because I don't send ACK for ACK, so when receive fin sender
 don't reset timer. But if I always reset timer when call ack_received, it will fail on check_lab3 t_send_extra. I figure out why this fail, because remote send AF separately with same ackno,
 I need reset timer after sender have sent fin because it will only receive fin or ack for fin.
+
+## sender timer don't reset correctly
+if in_flight_segments has nothing don't reset timer, but fin_sent is an exception.
 
 - Optional: I was surprised by: [describe]
 

@@ -83,14 +83,16 @@ size_t TCPConnection::write(const string &data) {
 void TCPConnection::tick(const size_t ms_since_last_tick) {
     // abort the connection, and send a rst seg,
     // if the number of consecutive retx > TCPConfig::MAX_RETX_ATTEMPTS
+    DEBUG(_sender.consecutive_retransmissions());
     if (_sender.consecutive_retransmissions() > _cfg.MAX_RETX_ATTEMPTS) {
         send_rst_seg();
     }
+    cout << "tick " << ms_since_last_tick << " " << _sender.time_since_last_segment_received() << " " << _cfg.rt_timeout << endl;
     _sender.tick(ms_since_last_tick);
+    _sender.fill_window();
     // TODO: end the connection if necessary
 
     collect_output();
-    cout << "tick " << ms_since_last_tick << " " << _sender.time_since_last_segment_received() << " " << _cfg.rt_timeout << endl;
     if (_sender.time_since_last_segment_received() >= _cfg.rt_timeout * 10) {
         _linger_after_streams_finish = false;
     }
@@ -98,6 +100,7 @@ void TCPConnection::tick(const size_t ms_since_last_tick) {
 }
 
 void TCPConnection::end_input_stream() {
+    DEBUG("close sender");
     _sender.stream_in().end_input();
     _sender.fill_window();
     collect_output();
@@ -125,6 +128,8 @@ TCPConnection::~TCPConnection() {
 
 // connection will send segment whenever sender push seg onto its outgoing queue.
 void TCPConnection::collect_output() {
+    DEBUG(_sender.segments_out().size());
+    DEBUG(segments_out().size());
     while (! _sender.segments_out().empty()) {
         TCPSegment &seg = _sender.segments_out().front();
         cout << "before coll seg " << seg.header().summary() << endl;
@@ -140,8 +145,8 @@ void TCPConnection::collect_output() {
             : _receiver.window_size();
         segments_out().emplace(move(seg));
         _sender.segments_out().pop();
-        cout << "coll seg " << seg.header().summary() << endl;
-        cout << "stream out seg " << segments_out().back().header().summary() << endl;
+        DEBUG(seg.header().summary());
+        cout << "stream out seg sender sz " << _sender.segments_out().size() << " out sz " << segments_out().size() << " " << segments_out().back().header().summary() << endl;
     }
 }
 

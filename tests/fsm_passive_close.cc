@@ -44,7 +44,7 @@ int main() {
 
             test_2.execute(ExpectState{State::LAST_ACK});
 
-            TCPSegment seg1 = test_2.expect_seg(ExpectOneSegment{}.with_fin(true), "test 2 falied: bad seg or no FIN");
+            TCPSegment seg1 = test_2.expect_seg(ExpectOneSegment{}.with_fin(true), "test 2 failed: bad seg or no FIN");
 
             test_2.execute(Tick(cfg.rt_timeout - 2));
 
