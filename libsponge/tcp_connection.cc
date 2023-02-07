@@ -23,12 +23,14 @@ size_t TCPConnection::time_since_last_segment_received() const { return _sender.
 
 void TCPConnection::segment_received(const TCPSegment &seg) {
     DEBUG(seg.header().summary());
+    DEBUG(seg.payload().size());
     DEBUG(state().name());
     // if the RST flag is set, sets both the inbound and outbound streams to error
     // TODO: and kill connection permanently.
     if (seg.header().rst) {
         _receiver.stream_out().set_error();
         _sender.stream_in().set_error();
+        _linger_after_streams_finish = false;
         return;
     }
     // give seg to receiver so it can inspect the fileds it cares: seqno, SYNC, payload, FIN
@@ -41,25 +43,29 @@ void TCPConnection::segment_received(const TCPSegment &seg) {
     // if ACK flag is set, tells the sender about the fields it cares: ackno and wnd_size
     if (seg.header().ack) {
     // if (_receiver.ackno().has_value())
+        if (_sender.is_closed()) {
+            // in LISTEN any ACK should be ignored
+            return;
+        }
         // if incoming seg occupied any seqno, Connection makes sure that at least one seg is sent in reply.
         // to update ackno and wnd_size
         _sender.ack_received(seg.header().ackno, seg.header().win);
-        auto after_send_state(state()); // for debug
-        // cout << "sender ack " << state().name() << endl;
-        // cout << "bytes in flight " << _sender.bytes_in_flight() << endl;
         _sender.fill_window();
         // responding "keep-alive" seg
         // receive a seg with an invalid ackno to see if your connection is still alive
         // your connection should reply these segments
-        // DEBUG(_receiver.ackno().has_value());
-        // DEBUG(seg.length_in_sequence_space());
-        // DEBUG(seg.header().seqno);
-        // DEBUG(_receiver.ackno().value());
+        DEBUG(seg.payload().size());
+        DEBUG(seg.header().seqno);
+        if (_receiver.ackno().has_value()) DEBUG(_receiver.ackno().value());
         if (_receiver.ackno().has_value() && seg.payload().size() == 0
         && seg.header().seqno == _receiver.ackno().value() - 1) {
             _sender.send_empty_segment();
+        } else if (_receiver.ackno().has_value() && seg.payload().size() > 0
+            && _sender.segments_out().size() == 0) {
+            _sender.send_empty_segment();
         }
         // if only ack received or seg_out is not empty then don't send ack for it
+        // DEBUG(only_ack(seg.header()));
         // if (!only_ack(seg.header()) && _sender.segments_out().empty()) {
         //     _sender.send_empty_segment();
         // }
@@ -120,6 +126,7 @@ TCPConnection::~TCPConnection() {
             send_rst_seg();
             _receiver.stream_out().set_error();
             _sender.stream_in().set_error();
+            _linger_after_streams_finish = false;
         }
     } catch (const exception &e) {
         std::cerr << "Exception destructing TCP FSM: " << e.what() << std::endl;
@@ -158,4 +165,5 @@ void TCPConnection::send_rst_seg() {
     rst_seg.header().rst = true;
     _sender.segments_out().pop();
     _segments_out.emplace(move(rst_seg));
+    _sender.ack_received(_sender.next_seqno(), rst_seg.header().win);
 }

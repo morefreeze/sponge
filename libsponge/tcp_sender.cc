@@ -56,6 +56,7 @@ void TCPSender::fill_window() {
             _fin_sent = true;
         }
         seg.payload() = Buffer(move(payload));
+        DEBUG(payload.size());
         DEBUG(seg.header().summary());
         if (!push_new_segment(move(seg))) {
             break;
@@ -124,8 +125,10 @@ unsigned int TCPSender::consecutive_retransmissions() const {
 }
 
 void TCPSender::send_empty_segment() {
+    DEBUG("empty seg");
     TCPSegment seg;
     seg.header().seqno = next_seqno();
+    DEBUG(seg.header().summary());
     segments_out().emplace(move(seg));
 }
 
