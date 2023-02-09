@@ -21,11 +21,12 @@ class TCPConnection {
     //! in case the remote TCPConnection doesn't know we've received its whole stream?
     bool _linger_after_streams_finish{true};
 
-    // if send ack after receive remote fin 
-    bool _remote_fin_ack{false};
-    // if receive ack for my fin
-    bool _recv_my_fin_ack{false};
+    // // if send ack after receive remote fin 
+    // bool _remote_fin_ack{false};
+    // // if receive ack for my fin
+    // bool _recv_my_fin_ack{false};
 
+    bool _is_rst{false};
     void collect_output();
 
     void send_rst_seg();
@@ -89,7 +90,12 @@ class TCPConnection {
     //! \brief Is the connection still alive in any way?
     //! \returns `true` if either stream is still running or if the TCPConnection is lingering
     //! after both streams have finished (e.g. to ACK retransmissions from the peer)
-    bool active() const;
+    bool active() const {
+      DEBUG(prereq1());
+      DEBUG(prereq2());
+      DEBUG(prereq3());
+      return !(prereq1() && prereq2() && prereq3()) || _linger_after_streams_finish;
+    };
     //!@}
 
     //! Construct a new connection from a configuration
@@ -111,7 +117,7 @@ class TCPConnection {
 
     bool prereq2() const { return _sender.stream_in().eof(); }
 
-    bool prereq3() const { return _sender.stream_in().eof() && _sender.bytes_in_flight() == 0; }
+    bool prereq3() const { return _sender.stream_in().eof() && (_is_rst || _sender.bytes_in_flight() == 0); }
 
     bool only_ack(const TCPHeader &header) const { return header.ack && !header.fin && !header.syn; }
 };

@@ -31,6 +31,7 @@ void TCPConnection::segment_received(const TCPSegment &seg) {
         _receiver.stream_out().set_error();
         _sender.stream_in().set_error();
         _linger_after_streams_finish = false;
+        _is_rst = true;
         return;
     }
     // give seg to receiver so it can inspect the fileds it cares: seqno, SYNC, payload, FIN
@@ -73,10 +74,9 @@ void TCPConnection::segment_received(const TCPSegment &seg) {
     }
 }
 
-bool TCPConnection::active() const {
+// bool TCPConnection::active() const {
     // return !(_sender.stream_in().eof() && _receiver.stream_out().eof()) || _linger_after_streams_finish;
-    return !(prereq1() && prereq2() && prereq3()) || _linger_after_streams_finish;
-}
+// }
 
 size_t TCPConnection::write(const string &data) {
     size_t byte_written = _sender.stream_in().write(data);
@@ -166,4 +166,5 @@ void TCPConnection::send_rst_seg() {
     _sender.segments_out().pop();
     _segments_out.emplace(move(rst_seg));
     _sender.ack_received(_sender.next_seqno(), rst_seg.header().win);
+    _is_rst = true;
 }

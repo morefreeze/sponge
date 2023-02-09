@@ -68,7 +68,7 @@ size_t ByteStream::buffer_size() const { return (_wi - _ri); }
 
 bool ByteStream::buffer_empty() const { return buffer_size() == 0; }
 
-bool ByteStream::eof() const { DEBUG(_error); DEBUG(input_ended()); return _error || (_ri == _wi && input_ended()); }
+bool ByteStream::eof() const { return _error || (_ri == _wi && input_ended()); }
 
 size_t ByteStream::bytes_written() const { return _wi; }
 
