@@ -98,19 +98,22 @@ void TCPConnection::tick(const size_t ms_since_last_tick) {
     // abort the connection, and send a rst seg,
     // if the number of consecutive retx > TCPConfig::MAX_RETX_ATTEMPTS
     DEBUG(_sender.consecutive_retransmissions());
-    if (_sender.consecutive_retransmissions() > _cfg.MAX_RETX_ATTEMPTS) {
+    if (_sender.consecutive_retransmissions() >= _cfg.MAX_RETX_ATTEMPTS) {
         send_rst_seg();
+        _receiver.stream_out().set_error();
+        _sender.stream_in().set_error();
+        _linger_after_streams_finish = false;
     }
     cout << "tick " << ms_since_last_tick << " " << _sender.time_since_last_segment_received() << " " << _cfg.rt_timeout << endl;
     _sender.tick(ms_since_last_tick);
-    _sender.fill_window(); // TODO: rm this or judge when to send syn to call this
+    // _sender.fill_window(); // TODO: rm this or judge when to send syn to call this
     // TODO: end the connection if necessary
 
     collect_output();
-    if (_sender.time_since_last_segment_received() >= _cfg.rt_timeout * 10) {
+    if (_sender.time_since_last_segment_received() >= _cfg.rt_timeout * 10
+        && _sender.time_since_last_segment_received() >= _sender.next_timeout_ms()) {
         _linger_after_streams_finish = false;
     }
-
 }
 
 void TCPConnection::end_input_stream() {

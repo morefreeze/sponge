@@ -126,6 +126,8 @@ class TCPSender {
     WrappingInt32 next_seqno() const { return wrap(_next_seqno, _isn); }
     //!@}
     size_t time_since_last_segment_received() const { return _timer_ms; }
+    
+    unsigned int next_timeout_ms() const { return _next_timeout_ms; }
 
     bool is_closed() const { DEBUG(next_seqno_absolute());return next_seqno_absolute() == 0; }
 };
