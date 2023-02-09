@@ -120,6 +120,8 @@ class TCPConnection {
     bool prereq3() const { return _sender.stream_in().eof() && (_is_rst || _sender.bytes_in_flight() == 0); }
 
     bool only_ack(const TCPHeader &header) const { return header.ack && !header.fin && !header.syn; }
+
+    bool only_syn(const TCPHeader &header) const { return header.syn && !header.fin && !header.ack; }
 };
 
 #endif  // SPONGE_LIBSPONGE_TCP_FACTORED_HH

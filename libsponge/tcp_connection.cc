@@ -71,7 +71,15 @@ void TCPConnection::segment_received(const TCPSegment &seg) {
         //     _sender.send_empty_segment();
         // }
         collect_output();
-    }
+    } else if (only_syn(seg.header())) {
+        // remote syn, we should send syn+ack
+        _sender.fill_window();
+        if (_sender.segments_out().size() == 0) {
+            // my syn sent, only send ack w/o syn
+            _sender.send_empty_segment();
+        }
+        collect_output();
+    } 
 }
 
 // bool TCPConnection::active() const {
@@ -95,7 +103,7 @@ void TCPConnection::tick(const size_t ms_since_last_tick) {
     }
     cout << "tick " << ms_since_last_tick << " " << _sender.time_since_last_segment_received() << " " << _cfg.rt_timeout << endl;
     _sender.tick(ms_since_last_tick);
-    _sender.fill_window();
+    _sender.fill_window(); // TODO: rm this or judge when to send syn to call this
     // TODO: end the connection if necessary
 
     collect_output();
