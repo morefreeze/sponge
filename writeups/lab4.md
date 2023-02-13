@@ -9,7 +9,7 @@ I collaborated with: [list sunetids here]
 
 I would like to thank/reward these classmates for their help: [list sunetids here]
 
-This lab took me about 13 hours to do. I [did/did not] attend the lab session.
+This lab took me about 15 hours to do. I [did/did not] attend the lab session.
 
 Program Structure and Design of the TCPConnection:
 []
@@ -48,6 +48,10 @@ if in_flight_segments has nothing don't reset timer, but fin_sent is an exceptio
 
 ## add _is_rst field to indicate if recv or send rst
 that will break prereq3, so it can pass t_ack_rst test4.
+
+## why txrx.sh failed
+I don't know why txrx.sh all failed with any arguments. I have no idea where to start
+inspecting.
 
 - Optional: I was surprised by: [describe]
 

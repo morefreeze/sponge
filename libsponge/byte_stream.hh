@@ -89,6 +89,6 @@ class ByteStream {
     //!@}
 };
 
-#define DEBUG(x) do { std::cerr << __FILE__ << ":" << __LINE__ << " " << __func__ << ":" << #x << ": " << x << std::endl; } while (0)
-// #define DEBUG(x) do {} while(0)
+// #define DEBUG(x) do { std::cerr << __FILE__ << ":" << __LINE__ << " " << __func__ << ":" << #x << ": " << x << std::endl; } while (0)
+#define DEBUG(x) do {} while(0)
 #endif  // SPONGE_LIBSPONGE_BYTE_STREAM_HH
