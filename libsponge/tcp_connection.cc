@@ -40,7 +40,7 @@ void TCPConnection::segment_received(const TCPSegment &seg) {
         _linger_after_streams_finish = false;
     }
     auto after_recv_state(state());
-    cout << "recv state " << after_recv_state.name() << endl;
+    DEBUG(after_recv_state.name());
     // if ACK flag is set, tells the sender about the fields it cares: ackno and wnd_size
     if (seg.header().ack) {
     // if (_receiver.ackno().has_value())
@@ -104,7 +104,8 @@ void TCPConnection::tick(const size_t ms_since_last_tick) {
         _sender.stream_in().set_error();
         _linger_after_streams_finish = false;
     }
-    cout << "tick " << ms_since_last_tick << " " << _sender.time_since_last_segment_received() << " " << _cfg.rt_timeout << endl;
+    DEBUG(ms_since_last_tick);
+    DEBUG(_sender.time_since_last_segment_received());
     _sender.tick(ms_since_last_tick);
     // _sender.fill_window(); // TODO: rm this or judge when to send syn to call this
     // TODO: end the connection if necessary
@@ -150,10 +151,9 @@ void TCPConnection::collect_output() {
     DEBUG(segments_out().size());
     while (! _sender.segments_out().empty()) {
         TCPSegment &seg = _sender.segments_out().front();
-        cout << "before coll seg " << seg.header().summary() << endl;
+        DEBUG(seg.header().summary());
         // connection will ask the recevier for the fields: ackno and wnd_size
         if (_receiver.ackno().has_value() && !seg.header().ack) {
-            // cout << "recv ack " << _receiver.ackno().value() << " next seq " << _sender.next_seqno() << endl;
             // if there is an ackno, it will set ack
             seg.header().ack = true;
             seg.header().ackno = _receiver.ackno().value();
@@ -164,7 +164,6 @@ void TCPConnection::collect_output() {
         segments_out().emplace(move(seg));
         _sender.segments_out().pop();
         DEBUG(seg.header().summary());
-        cout << "stream out seg sender sz " << _sender.segments_out().size() << " out sz " << segments_out().size() << " " << segments_out().back().header().summary() << endl;
     }
 }
 

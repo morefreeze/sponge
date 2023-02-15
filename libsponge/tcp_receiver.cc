@@ -21,7 +21,7 @@ void TCPReceiver::segment_received(const TCPSegment &seg) {
     _fin_received |= (seg.header().fin && _syn_received);
     if (_syn_received) {
         auto idx(stream_idx(seqno));
-        // cout << seqno << " ack " << ackno().value_or(WrappingInt32{0}) << " idx " << idx << endl;
+        DEBUG(ackno().value_or(WrappingInt32{0}));
         _reassembler.push_substring(seg.payload().copy(), idx, _fin_received);
     }
 }
