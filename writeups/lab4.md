@@ -51,7 +51,8 @@ that will break prereq3, so it can pass t_ack_rst test4.
 
 ## why txrx.sh failed
 I don't know why txrx.sh all failed with any arguments. I have no idea where to start
-inspecting.
+inspecting. I'm an idiot because I put an `"` to txrx.sh by mistake. But I read section 6
+Testing to set up packet capturing, ultimately it proved my code is right.
 
 - Optional: I was surprised by: [describe]
 
